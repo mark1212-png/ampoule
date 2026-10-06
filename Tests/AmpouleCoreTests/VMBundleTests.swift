@@ -114,3 +114,33 @@ func rejectsDiskSizeOutOfRange(size: Int) throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: "AmpouleTests-missing-\(UUID().uuidString)")
     #expect(try VMLibrary(directory: directory).entries().isEmpty)
 }
+
+@Test func secondLockOnSameBundleFails() throws {
+    let directory = try makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let bundle = try createUbuntu(in: directory)
+    let lock = try BundleLock(bundle: bundle)
+    #expect(throws: BundleError.alreadyRunning("Ubuntu")) { try BundleLock(bundle: bundle) }
+    withExtendedLifetime(lock) {}
+}
+
+@Test func lockIsReleasedWhenDropped() throws {
+    let directory = try makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let bundle = try createUbuntu(in: directory)
+    do { _ = try BundleLock(bundle: bundle) }
+    _ = try BundleLock(bundle: bundle)
+}
+
+@Test func libraryFindsBundleByName() throws {
+    let directory = try makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    _ = try createUbuntu(in: directory)
+    let library = VMLibrary(directory: directory)
+
+    #expect(try library.bundle(named: "Ubuntu").configuration.name == "Ubuntu")
+    #expect(throws: BundleError.notFound("Debian")) { try library.bundle(named: "Debian") }
+}

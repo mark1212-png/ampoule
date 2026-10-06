@@ -40,6 +40,16 @@ public struct VMLibrary: Sendable {
             }
     }
 
+    /// Opens the bundle for the VM called `name`.
+    public func bundle(named name: String) throws -> VMBundle {
+        try VMBundle.validateName(name)
+        let url = directory.appending(path: "\(name).\(VMBundle.pathExtension)", directoryHint: .isDirectory)
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            throw BundleError.notFound(name)
+        }
+        return try VMBundle.open(at: url)
+    }
+
     public func create(name: String, guestOS: GuestOS, cpuCount: Int, memoryMiB: Int, diskSizeGiB: Int) throws -> VMBundle {
         try VMBundle.create(
             in: directory,
