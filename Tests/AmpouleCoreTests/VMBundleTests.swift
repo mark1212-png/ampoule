@@ -203,3 +203,47 @@ private struct InstallFailed: Error {}
     #expect(library.containsBundle(named: "Broken"))
     #expect(!library.containsBundle(named: "Debian"))
 }
+
+@Test func updatingConfigurationSavesSharedFolders() throws {
+    let directory = try makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let bundle = try createUbuntu(in: directory)
+    var configuration = bundle.configuration
+    configuration.sharedFolders = [SharedFolder(path: directory.path, readOnly: true)]
+    _ = try bundle.updatingConfiguration(configuration)
+
+    #expect(try VMBundle.open(at: bundle.url).configuration.sharedFolders == configuration.sharedFolders)
+}
+
+@Test func updatingConfigurationRefusesWhileRunning() throws {
+    let directory = try makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let bundle = try createUbuntu(in: directory)
+    let lock = try BundleLock(bundle: bundle)
+    var configuration = bundle.configuration
+    configuration.sharedFolders = [SharedFolder(path: directory.path)]
+
+    #expect(throws: BundleError.alreadyRunning("Ubuntu")) { try bundle.updatingConfiguration(configuration) }
+    #expect(try VMBundle.open(at: bundle.url).configuration.sharedFolders.isEmpty)
+    withExtendedLifetime(lock) {}
+}
+
+@Test func updatingConfigurationRejectsInvalidChangesAndKeepsTheFile() throws {
+    let directory = try makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let bundle = try createUbuntu(in: directory)
+    let original = try Data(contentsOf: bundle.url.appending(path: VMBundle.configurationFileName))
+
+    var renamed = bundle.configuration
+    renamed.name = "Debian"
+    #expect(throws: BundleError.immutableSettingChanged) { try bundle.updatingConfiguration(renamed) }
+
+    var invalid = bundle.configuration
+    invalid.sharedFolders = [SharedFolder(path: "relative")]
+    #expect(throws: ConfigurationError.sharedFolderPathNotAbsolute("relative")) { try bundle.updatingConfiguration(invalid) }
+
+    #expect(try Data(contentsOf: bundle.url.appending(path: VMBundle.configurationFileName)) == original)
+}

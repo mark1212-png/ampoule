@@ -10,7 +10,7 @@ struct AmpouleCommand: ParsableCommand {
         commandName: "ampoule",
         abstract: "Create and run virtual machines on Apple Silicon.",
         version: Ampoule.version,
-        subcommands: [Create.self, List.self, Run.self, Validate.self, IPSW.self]
+        subcommands: [Create.self, List.self, Run.self, Share.self, Validate.self, IPSW.self]
     )
 }
 

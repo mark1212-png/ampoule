@@ -58,3 +58,28 @@ func rejectsDiskPathsOutsideBundle(path: String) {
     let json = #"{"schemaVersion":1,"name":"x","guestOS":"beos","cpuCount":1,"memoryMiB":1024,"disks":[{"path":"d.img","readOnly":false}]}"#
     #expect(throws: DecodingError.self) { try VMConfiguration.decode(from: Data(json.utf8)) }
 }
+
+@Test func configWithoutSharedFoldersDecodesAsNone() throws {
+    let json = #"{"schemaVersion":1,"name":"x","guestOS":"linux","cpuCount":1,"memoryMiB":1024,"disks":[{"path":"d.img","readOnly":false}]}"#
+    #expect(try VMConfiguration.decode(from: Data(json.utf8)).sharedFolders.isEmpty)
+}
+
+@Test func sharedFoldersRoundTrip() throws {
+    var configuration = makeConfiguration()
+    configuration.sharedFolders = [SharedFolder(path: "/Users/me/Projects"), SharedFolder(path: "/Users/me/Notes", readOnly: true)]
+    let data = try JSONEncoder().encode(configuration)
+    #expect(try VMConfiguration.decode(from: data) == configuration)
+}
+
+@Test(arguments: ["relative/path", "", "/"])
+func rejectsSharedFolderPathsThatArentAbsoluteFolders(path: String) {
+    var configuration = makeConfiguration()
+    configuration.sharedFolders = [SharedFolder(path: path)]
+    #expect(throws: ConfigurationError.sharedFolderPathNotAbsolute(path)) { try configuration.validate() }
+}
+
+@Test func rejectsSharedFoldersWithTheSameName() {
+    var configuration = makeConfiguration()
+    configuration.sharedFolders = [SharedFolder(path: "/Users/a/Projects"), SharedFolder(path: "/Volumes/Work/Projects")]
+    #expect(throws: ConfigurationError.duplicateSharedFolderName("Projects")) { try configuration.validate() }
+}

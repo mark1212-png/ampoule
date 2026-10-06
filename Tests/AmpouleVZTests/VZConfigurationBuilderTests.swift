@@ -180,3 +180,45 @@ private func makeBundle(guestOS: GuestOS = .linux) throws -> (VMBundle, cleanup:
     }
     #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path).isEmpty)
 }
+
+@Test func linuxSharedFoldersUseTheAmpouleTag() throws {
+    let (bundle, cleanup) = try makeBundle()
+    defer { cleanup() }
+    var configuration = bundle.configuration
+    configuration.sharedFolders = [SharedFolder(path: bundle.url.path, readOnly: true)]
+    let updated = try bundle.updatingConfiguration(configuration)
+
+    let built = try VZConfigurationBuilder.buildConfiguration(for: updated, installMedia: nil)
+
+    let device = try #require(built.directorySharingDevices.first as? VZVirtioFileSystemDeviceConfiguration)
+    #expect(device.tag == VZConfigurationBuilder.linuxSharedFolderTag)
+    let share = try #require(device.share as? VZMultipleDirectoryShare)
+    #expect(share.directories[bundle.url.lastPathComponent]?.isReadOnly == true)
+}
+
+@Test func macOSSharedFoldersUseTheAutomountTag() throws {
+    let configuration = VMConfiguration(
+        name: "Mac", guestOS: .macOS, cpuCount: 4, memoryMiB: 8192,
+        disks: [DiskConfiguration(path: "disk.img")],
+        sharedFolders: [SharedFolder(path: FileManager.default.temporaryDirectory.path)]
+    )
+    let device = try #require(try VZConfigurationBuilder.directorySharingDevice(for: configuration))
+    #expect(device.tag == VZVirtioFileSystemDeviceConfiguration.macOSGuestAutomountTag)
+}
+
+@Test func noSharedFoldersMeansNoSharingDevice() throws {
+    let (bundle, cleanup) = try makeBundle()
+    defer { cleanup() }
+    #expect(try VZConfigurationBuilder.buildConfiguration(for: bundle, installMedia: nil).directorySharingDevices.isEmpty)
+}
+
+@Test func missingSharedFolderIsAnError() throws {
+    let configuration = VMConfiguration(
+        name: "Linux", guestOS: .linux, cpuCount: 2, memoryMiB: 2048,
+        disks: [DiskConfiguration(path: "disk.img")],
+        sharedFolders: [SharedFolder(path: "/nonexistent/Projects")]
+    )
+    #expect(throws: VZBackendError.sharedFolderNotFound("/nonexistent/Projects")) {
+        try VZConfigurationBuilder.directorySharingDevice(for: configuration)
+    }
+}

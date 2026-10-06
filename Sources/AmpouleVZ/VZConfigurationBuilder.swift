@@ -13,6 +13,7 @@ public enum VZBackendError: Error, Equatable, CustomStringConvertible {
     case restoreImageUnsupported
     case belowMinimumCPUCount(have: Int, need: Int)
     case belowMinimumMemory(haveMiB: Int, needMiB: Int)
+    case sharedFolderNotFound(String)
 
     public var description: String {
         switch self {
@@ -36,6 +37,8 @@ public enum VZBackendError: Error, Equatable, CustomStringConvertible {
             "This macOS version needs at least \(need) CPUs; the VM has \(have)."
         case .belowMinimumMemory(let haveMiB, let needMiB):
             "This macOS version needs at least \(needMiB) MiB of memory; the VM has \(haveMiB)."
+        case .sharedFolderNotFound(let path):
+            "Shared folder \"\(path)\" doesn't exist or isn't a folder. Remove it from the VM or restore it."
         }
     }
 }
@@ -47,6 +50,8 @@ public enum VZConfigurationBuilder {
     public static let displayWidth = 1920
     public static let displayHeight = 1200
     public static let macDisplayPixelsPerInch = 144
+    /// Linux guests mount shared folders with `mount -t virtiofs ampoule <mount point>`.
+    public static let linuxSharedFolderTag = "ampoule"
 
     /// Builds and validates the configuration. `installMedia` (an ISO, Linux only) is attached read-only as a USB drive for this run only.
     ///
@@ -159,7 +164,32 @@ public enum VZConfigurationBuilder {
 
         configuration.entropyDevices = [VZVirtioEntropyDeviceConfiguration()]
         configuration.memoryBalloonDevices = [VZVirtioTraditionalMemoryBalloonDeviceConfiguration()]
+        if let sharing = try directorySharingDevice(for: vmConfiguration) {
+            configuration.directorySharingDevices = [sharing]
+        }
         return configuration
+    }
+
+    /// One virtiofs device exposing every shared folder by name. macOS guests mount it automatically
+    /// at /Volumes/My Shared Files; Linux guests mount the `ampoule` tag themselves.
+    static func directorySharingDevice(for vmConfiguration: VMConfiguration) throws -> VZVirtioFileSystemDeviceConfiguration? {
+        guard !vmConfiguration.sharedFolders.isEmpty else {
+            return nil
+        }
+        var directories: [String: VZSharedDirectory] = [:]
+        for folder in vmConfiguration.sharedFolders {
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: folder.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+                throw VZBackendError.sharedFolderNotFound(folder.path)
+            }
+            directories[folder.name] = VZSharedDirectory(url: URL(filePath: folder.path, directoryHint: .isDirectory), readOnly: folder.readOnly)
+        }
+        let tag = vmConfiguration.guestOS == .macOS
+            ? VZVirtioFileSystemDeviceConfiguration.macOSGuestAutomountTag
+            : linuxSharedFolderTag
+        let device = VZVirtioFileSystemDeviceConfiguration(tag: tag)
+        device.share = VZMultipleDirectoryShare(directories: directories)
+        return device
     }
 
     private static func efiVariableStore(in bundle: VMBundle) throws -> VZEFIVariableStore {
