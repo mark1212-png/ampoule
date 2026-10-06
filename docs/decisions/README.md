@@ -22,5 +22,7 @@ Short records of each project decision. Context, decision and consequences were 
 | [0016](0016-project-name.md) | Project name: Ampoule |
 | [0017](0017-non-goals.md) | Non-goals |
 | [0018](0018-ai-assisted-workflow.md) | AI-assisted development workflow |
+| [0019](0019-cli-argument-parser.md) | Use swift-argument-parser for the CLI (proposed) |
+| [0020](0020-vm-bundle-format.md) | VM bundle format and library location (proposed) |
 
 New record: copy [template.md](template.md), take the next number.

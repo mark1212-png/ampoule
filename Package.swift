@@ -8,9 +8,18 @@ let package = Package(
         .library(name: "AmpouleCore", targets: ["AmpouleCore"]),
         .executable(name: "ampoule", targets: ["AmpouleCLI"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
+    ],
     targets: [
         .target(name: "AmpouleCore"),
-        .executableTarget(name: "AmpouleCLI", dependencies: ["AmpouleCore"]),
+        .executableTarget(
+            name: "AmpouleCLI",
+            dependencies: [
+                "AmpouleCore",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ]
+        ),
         .testTarget(name: "AmpouleCoreTests", dependencies: ["AmpouleCore"]),
     ]
 )
