@@ -190,3 +190,16 @@ private struct InstallFailed: Error {}
     await #expect(throws: CancellationError.self) { try await task.value }
     #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path).isEmpty)
 }
+
+@Test func libraryKnowsWhichNamesAreTaken() throws {
+    let directory = try makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    _ = try createUbuntu(in: directory)
+    try FileManager.default.createDirectory(at: directory.appending(path: "Broken.ampoule"), withIntermediateDirectories: false)
+    let library = VMLibrary(directory: directory)
+
+    #expect(library.containsBundle(named: "Ubuntu"))
+    #expect(library.containsBundle(named: "Broken"))
+    #expect(!library.containsBundle(named: "Debian"))
+}

@@ -40,6 +40,11 @@ public struct VMLibrary: Sendable {
             }
     }
 
+    /// Whether a bundle (valid or not) already uses `name`.
+    public func containsBundle(named name: String) -> Bool {
+        FileManager.default.fileExists(atPath: directory.appending(path: "\(name).\(VMBundle.pathExtension)").path)
+    }
+
     /// Opens the bundle for the VM called `name`.
     public func bundle(named name: String) throws -> VMBundle {
         try VMBundle.validateName(name)

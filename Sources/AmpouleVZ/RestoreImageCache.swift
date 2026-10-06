@@ -20,6 +20,12 @@ public enum RestoreImageCache {
         URL.cachesDirectory.appending(path: "Ampoule/RestoreImages", directoryHint: .isDirectory)
     }
 
+    /// The cached copy of `remoteURL`, if it has been downloaded before.
+    public static func cachedCopy(of remoteURL: URL, in directory: URL = defaultDirectory) -> URL? {
+        let url = directory.appending(path: remoteURL.lastPathComponent)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
     /// Returns a local copy of `remoteURL`, downloading it unless it's already cached.
     ///
     /// A file only appears under its final name once the download is complete and its size checks out.
@@ -29,10 +35,10 @@ public enum RestoreImageCache {
         in directory: URL = defaultDirectory,
         progress: @escaping @Sendable (Int64, Int64) -> Void
     ) async throws -> URL {
-        let destination = directory.appending(path: remoteURL.lastPathComponent)
-        if FileManager.default.fileExists(atPath: destination.path) {
-            return destination
+        if let cached = cachedCopy(of: remoteURL, in: directory) {
+            return cached
         }
+        let destination = directory.appending(path: remoteURL.lastPathComponent)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let partial = directory.appending(path: ".\(remoteURL.lastPathComponent).\(UUID().uuidString).partial")
 

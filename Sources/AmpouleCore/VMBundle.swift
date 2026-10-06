@@ -131,7 +131,7 @@ public struct VMBundle: Sendable {
         directory.appending(path: "\(name).\(pathExtension)", directoryHint: .isDirectory)
     }
 
-    static func validateName(_ name: String) throws(BundleError) {
+    public static func validateName(_ name: String) throws(BundleError) {
         let isInvalid = name.isEmpty
             || name.count > maximumNameLength
             || name.hasPrefix(".")

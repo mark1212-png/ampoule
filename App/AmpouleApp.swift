@@ -25,20 +25,22 @@ struct AmpouleApp: App {
     }
 }
 
-/// Shuts running VMs down before the app quits, instead of cutting their power.
+/// Shuts running VMs down and cancels installations before the app quits.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     static let forceOffDelay: Duration = .seconds(30)
 
     let model = LibraryModel()
 
+    /// Cancels installations (they leave nothing behind) and asks running guests to shut down before quitting.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard !model.running.isEmpty else {
+        guard !model.isIdle else {
             return .terminateNow
         }
         model.onAllStopped = {
             NSApp.reply(toApplicationShouldTerminate: true)
         }
+        model.cancelAllInstallations()
         model.shutDownAll()
         Task { [model] in
             try? await Task.sleep(for: Self.forceOffDelay)
