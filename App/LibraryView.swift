@@ -11,6 +11,13 @@ struct LibraryView: View {
         @Bindable var model = model
         NavigationSplitView {
             List(selection: $selection) {
+                if !model.installations.isEmpty {
+                    Section("Installing") {
+                        ForEach(model.installations) { installation in
+                            InstallationRow(installation: installation)
+                        }
+                    }
+                }
                 Section("Virtual Machines") {
                     ForEach(model.entries) { entry in
                         LibraryRow(entry: entry, isRunning: isRunning(entry))
@@ -41,7 +48,7 @@ struct LibraryView: View {
                 ContentUnavailableView {
                     Label(model.entries.isEmpty ? "No Virtual Machines" : "No Selection", systemImage: "shippingbox")
                 } description: {
-                    Text(model.entries.isEmpty ? "Create a Linux virtual machine to get started." : "Select a virtual machine.")
+                    Text(model.entries.isEmpty ? "Create a macOS or Linux virtual machine to get started." : "Select a virtual machine.")
                 } actions: {
                     Button("New Virtual Machine") { isCreating = true }
                         .buttonStyle(.glassProminent)
@@ -66,6 +73,32 @@ struct LibraryView: View {
     private func isRunning(_ entry: VMLibrary.Entry) -> Bool {
         guard case .valid(let bundle) = entry else { return false }
         return model.running[bundle.configuration.name] != nil
+    }
+}
+
+private struct InstallationRow: View {
+    let installation: Installation
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Label(installation.name, systemImage: GuestOS.macOS.symbolName)
+                Spacer()
+                Button("Cancel", systemImage: "xmark.circle.fill") { installation.cancel() }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.borderless)
+                    .help("Cancel and delete \(installation.name)")
+            }
+            if let fraction = installation.fraction {
+                ProgressView(value: fraction)
+            } else {
+                ProgressView().controlSize(.small)
+            }
+            Text(installation.statusText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 4)
     }
 }
 

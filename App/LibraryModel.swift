@@ -1,4 +1,5 @@
 import AmpouleCore
+import AmpouleVZ
 import Foundation
 import Observation
 
@@ -9,10 +10,16 @@ final class LibraryModel {
     let library = VMLibrary()
     private(set) var entries: [VMLibrary.Entry] = []
     private(set) var running: [String: RunningVM] = [:]
+    private(set) var installations: [Installation] = []
     var errorMessage: String?
 
-    /// Called when the last running VM stops; used to finish quitting the app.
+    /// Called once no VM is running and no installation is in progress; used to finish quitting the app.
     @ObservationIgnored var onAllStopped: (() -> Void)?
+
+    enum RestoreImageSource: Hashable {
+        case latest
+        case file(URL)
+    }
 
     init() {
         reload()
@@ -48,9 +55,7 @@ final class LibraryModel {
                     errorMessage = "\(name) stopped with an error: \(message)"
                 }
                 running[name] = nil
-                if running.isEmpty {
-                    onAllStopped?()
-                }
+                notifyIfIdle()
             }
             running[name] = vm
             Task { await vm.start() }
@@ -73,6 +78,64 @@ final class LibraryModel {
             errorMessage = "Couldn't move \(bundle.configuration.name) to the Trash: \(error.localizedDescription)"
         }
         reload()
+    }
+
+    /// Checks the name, then downloads (if needed) and installs macOS in the background.
+    /// The VM appears in the library once installation finishes.
+    func createMacOS(name: String, cpuCount: Int, memoryMiB: Int, diskSizeGiB: Int, source: RestoreImageSource) throws {
+        try VMBundle.validateName(name)
+        guard !library.containsBundle(named: name), !installations.contains(where: { $0.name == name }) else {
+            throw BundleError.alreadyExists(name)
+        }
+        let installation = Installation(name: name)
+        installations.append(installation)
+        installation.task = Task { [library] in
+            do {
+                let restoreImage: URL
+                switch source {
+                case .file(let url):
+                    restoreImage = url
+                case .latest:
+                    let latest = try await MacOSInstallation.latestRestoreImage()
+                    let report = installation.progressReporter { .downloading($0) }
+                    restoreImage = try await RestoreImageCache.localCopy(of: latest.url) { written, expected in
+                        if expected > 0 { report(Double(written) / Double(expected)) }
+                    }
+                }
+                installation.phase = .installing(0)
+                let report = installation.progressReporter { .installing($0) }
+                _ = try await library.create(
+                    name: name, guestOS: .macOS, cpuCount: cpuCount, memoryMiB: memoryMiB, diskSizeGiB: diskSizeGiB
+                ) { staged in
+                    try await MacOSInstallation.install(into: staged, restoreImage: restoreImage, progress: report)
+                }
+            } catch is CancellationError {
+                // Cancelled by the user or by quitting: nothing to report.
+            } catch {
+                if !Task.isCancelled {
+                    errorMessage = "Couldn't create \(name): \(error)"
+                }
+            }
+            installations.removeAll { $0 === installation }
+            reload()
+            notifyIfIdle()
+        }
+    }
+
+    func cancelAllInstallations() {
+        for installation in installations {
+            installation.cancel()
+        }
+    }
+
+    var isIdle: Bool {
+        running.isEmpty && installations.isEmpty
+    }
+
+    private func notifyIfIdle() {
+        if isIdle {
+            onAllStopped?()
+        }
     }
 
     func shutDownAll() {
