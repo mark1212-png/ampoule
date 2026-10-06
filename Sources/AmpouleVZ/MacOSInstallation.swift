@@ -49,10 +49,12 @@ public enum MacOSInstallation {
             progress(installerProgress.fractionCompleted)
         }
         defer { observation.invalidate() }
+        // Capture only the Progress (which is Sendable) in the cancellation handler, not the installer.
+        let installerProgress = installer.progress
         try await withTaskCancellationHandler {
             try await installer.install()
         } onCancel: {
-            installer.progress.cancel()
+            installerProgress.cancel()
         }
     }
 
