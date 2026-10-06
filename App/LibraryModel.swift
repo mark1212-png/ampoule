@@ -66,6 +66,18 @@ final class LibraryModel {
         }
     }
 
+    /// Saves a stopped VM's shared folders. Fails (with `errorMessage`) if the VM is running.
+    func setSharedFolders(_ folders: [SharedFolder], for bundle: VMBundle) {
+        var configuration = bundle.configuration
+        configuration.sharedFolders = folders
+        do {
+            _ = try bundle.updatingConfiguration(configuration)
+        } catch {
+            errorMessage = String(describing: error)
+        }
+        reload()
+    }
+
     /// Moves a stopped VM's bundle to the Trash, where it can still be recovered.
     func moveToTrash(_ bundle: VMBundle) {
         guard running[bundle.configuration.name] == nil else {

@@ -33,6 +33,26 @@ public struct VMBundle: Sendable {
         return bundle
     }
 
+    /// Validates `configuration` and saves it as this bundle's `config.json`, replacing the file atomically.
+    ///
+    /// Takes the bundle lock for the duration, so a running VM's settings can't change under it.
+    /// The name, guest OS and disks can't be changed this way.
+    public func updatingConfiguration(_ configuration: VMConfiguration) throws -> VMBundle {
+        let lock = try BundleLock(bundle: self)
+        defer { withExtendedLifetime(lock) {} }
+        guard configuration.name == self.configuration.name,
+              configuration.guestOS == self.configuration.guestOS,
+              configuration.disks == self.configuration.disks
+        else {
+            throw BundleError.immutableSettingChanged
+        }
+        try configuration.validate()
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        try encoder.encode(configuration).write(to: url.appending(path: Self.configurationFileName), options: .atomic)
+        return VMBundle(url: url, configuration: configuration)
+    }
+
     /// Creates a bundle in `directory` with one empty sparse disk.
     ///
     /// The bundle is assembled in a hidden staging directory and moved into place at the end,
@@ -165,6 +185,7 @@ public enum BundleError: Error, Equatable, CustomStringConvertible {
     case notFound(String)
     case cannotLock(String)
     case alreadyRunning(String)
+    case immutableSettingChanged
 
     public var description: String {
         switch self {
@@ -187,7 +208,9 @@ public enum BundleError: Error, Equatable, CustomStringConvertible {
         case .cannotLock(let name):
             "Could not create the lock file for \"\(name)\"."
         case .alreadyRunning(let name):
-            "\"\(name)\" is already running."
+            "\"\(name)\" is running. Shut it down first."
+        case .immutableSettingChanged:
+            "A VM's name, system and disks can't be changed after it's created."
         }
     }
 }

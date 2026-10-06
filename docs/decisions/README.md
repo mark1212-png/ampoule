@@ -27,5 +27,6 @@ Short records of each project decision. Context, decision and consequences were 
 | [0021](0021-vz-linux-machine.md) | Virtualization.framework Linux machine (proposed) |
 | [0022](0022-app-vm-lifecycle.md) | App window and VM lifecycle (proposed) |
 | [0023](0023-macos-guest-install.md) | Installing macOS guests (proposed) |
+| [0024](0024-shared-folders.md) | Shared folders (proposed) |
 
 New record: copy [template.md](template.md), take the next number.
