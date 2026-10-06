@@ -17,6 +17,8 @@ jobs:
       - name: Build and sign CLI
         run: scripts/build-cli.sh
       - run: swift test
+      - name: Smoke test (skips without hardware virtualization)
+        run: scripts/smoke-test.sh
       - name: Build app
         run: xcodebuild -project Ampoule.xcodeproj -scheme Ampoule -configuration Debug CODE_SIGNING_ALLOWED=NO build
 

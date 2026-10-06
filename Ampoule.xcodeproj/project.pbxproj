@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A0000000000000000000B001 /* AmpouleCore in Frameworks */ = {isa = PBXBuildFile; productRef = A0000000000000000000D001 /* AmpouleCore */; };
 		A0000000000000000000B002 /* AmpouleVZ in Frameworks */ = {isa = PBXBuildFile; productRef = A0000000000000000000D002 /* AmpouleVZ */; };
+		A0000000000000000000B003 /* AmpouleAppModel in Frameworks */ = {isa = PBXBuildFile; productRef = A0000000000000000000D003 /* AmpouleAppModel */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +27,7 @@
 			files = (
 				A0000000000000000000B001 /* AmpouleCore in Frameworks */,
 				A0000000000000000000B002 /* AmpouleVZ in Frameworks */,
+				A0000000000000000000B003 /* AmpouleAppModel in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -70,6 +72,7 @@
 			packageProductDependencies = (
 				A0000000000000000000D001 /* AmpouleCore */,
 				A0000000000000000000D002 /* AmpouleVZ */,
+				A0000000000000000000D003 /* AmpouleAppModel */,
 			);
 			productName = Ampoule;
 			productReference = A0000000000000000000F001 /* Ampoule.app */;
@@ -236,6 +239,10 @@
 		A0000000000000000000D002 /* AmpouleVZ */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AmpouleVZ;
+		};
+		A0000000000000000000D003 /* AmpouleAppModel */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AmpouleAppModel;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

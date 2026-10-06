@@ -7,6 +7,7 @@ let package = Package(
     products: [
         .library(name: "AmpouleCore", targets: ["AmpouleCore"]),
         .library(name: "AmpouleVZ", targets: ["AmpouleVZ"]),
+        .library(name: "AmpouleAppModel", targets: ["AmpouleAppModel"]),
         .executable(name: "ampoule", targets: ["AmpouleCLI"]),
     ],
     dependencies: [
@@ -15,6 +16,7 @@ let package = Package(
     targets: [
         .target(name: "AmpouleCore"),
         .target(name: "AmpouleVZ", dependencies: ["AmpouleCore"]),
+        .target(name: "AmpouleAppModel", dependencies: ["AmpouleCore", "AmpouleVZ"]),
         .executableTarget(
             name: "AmpouleCLI",
             dependencies: [
@@ -25,5 +27,6 @@ let package = Package(
         ),
         .testTarget(name: "AmpouleCoreTests", dependencies: ["AmpouleCore"]),
         .testTarget(name: "AmpouleVZTests", dependencies: ["AmpouleVZ"]),
+        .testTarget(name: "AmpouleAppModelTests", dependencies: ["AmpouleAppModel"]),
     ]
 )
