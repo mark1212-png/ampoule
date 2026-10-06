@@ -21,7 +21,7 @@ explaining the code in the author's own words, so all of it can be discussed in 
 
 | Milestone | Scope | Est. |
 |-----------|-------|------|
-| **v0.1** | VZ backend: macOS + Linux guests. Liquid Glass library + VM window, create/run/stop/delete, virtiofs shared folders, `ampoule` CLI, unit tests + GitHub Actions build, README with demo GIF + "How this was built" | ~5–6 wks |
+| **v0.1** ✅ built | VZ backend: macOS + Linux guests. Liquid Glass library + VM window, create/run/stop/delete, virtiofs shared folders, `ampoule` CLI, unit tests + GitHub Actions build, README with demo GIF + "How this was built" | ~5–6 wks |
 | **v0.2** | Snapshots (save state + APFS clones), clipboard (SPICE for Linux), guest agent v0 (Rust, vsock), Homebrew cask | ~4 wks |
 | **bench** | `ampoule-bench` (Python): boot / disk / CPU benchmarks → DuckDB/SQLite → analysis notebook. Later compares VZ vs. our engine | ~2–3 wks, alongside v0.2 |
 
