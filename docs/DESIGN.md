@@ -95,6 +95,7 @@ Each decision has a record in [`decisions/`](decisions/). This table is the inde
   Stays on VZ permanently: macOS guests depend on Apple's private paravirtual devices.
 - Linux: `VZEFIBootLoader`, virtio-gpu (2D only), Rosetta for x86 binaries, SPICE agent clipboard, nested virt on M3+.
 - Snapshots: `saveMachineState`/`restoreMachineState` + APFS `clonefile` for disks.
+- macOS 27 hosts add USB passthrough (`VZUSBPassthroughDevice`), EFI Secure Boot and custom virtio devices. Offer them behind `#available(macOS 27, *)`.
 
 ### Ampoule engine — Windows 11 ARM64 + full-featured Linux (D6, D14)
 - Hypervisor.framework: `hv_vm_create`, `hv_vm_map`, `hv_vcpu_create`/`hv_vcpu_run`, in-kernel GICv3 via `hv_gic_create` (macOS 15+).
@@ -131,7 +132,7 @@ Ampoule.app (SwiftUI, Liquid Glass)        ampoule (CLI)
 ## Known gaps vs Parallels
 
 - Coherence: needs guest agent + window streaming; per-guest-OS work.
-- USB passthrough: not in VZ; possible later in our engine (we already emulate XHCI).
+- USB passthrough: in VZ on macOS 27+ hosts only; possible later in our engine (we already emulate XHCI).
 - Bridged networking (VZ): restricted `com.apple.vm.networking` entitlement — NAT + userspace networking until granted. Our engine uses userspace networking.
 - 3D GPU for Linux/Windows guests.
 

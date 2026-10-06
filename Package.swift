@@ -13,13 +13,16 @@ let package = Package(
     ],
     targets: [
         .target(name: "AmpouleCore"),
+        .target(name: "AmpouleVZ", dependencies: ["AmpouleCore"]),
         .executableTarget(
             name: "AmpouleCLI",
             dependencies: [
                 "AmpouleCore",
+                "AmpouleVZ",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
         ),
         .testTarget(name: "AmpouleCoreTests", dependencies: ["AmpouleCore"]),
+        .testTarget(name: "AmpouleVZTests", dependencies: ["AmpouleVZ"]),
     ]
 )

@@ -112,6 +112,9 @@ public enum BundleError: Error, Equatable, CustomStringConvertible {
     case alreadyExists(String)
     case diskSizeOutOfRange(Int)
     case cannotCreateDisk(String)
+    case notFound(String)
+    case cannotLock(String)
+    case alreadyRunning(String)
 
     public var description: String {
         switch self {
@@ -129,6 +132,12 @@ public enum BundleError: Error, Equatable, CustomStringConvertible {
             "Disk size \(size) GiB is outside \(VMBundle.diskSizeRangeGiB)."
         case .cannotCreateDisk(let name):
             "Could not create disk \"\(name)\"."
+        case .notFound(let name):
+            "No VM named \"\(name)\"."
+        case .cannotLock(let name):
+            "Could not create the lock file for \"\(name)\"."
+        case .alreadyRunning(let name):
+            "\"\(name)\" is already running."
         }
     }
 }

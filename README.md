@@ -31,11 +31,24 @@ Details: [docs/DESIGN.md](docs/DESIGN.md). Every decision has a record in [docs/
 Requirements: an Apple Silicon Mac, macOS 26 or later, Xcode 26 or later. Rust (via [rustup](https://rustup.rs)) for the engine.
 
 ```bash
-swift build                     # AmpouleCore + ampoule CLI
+scripts/build-cli.sh            # builds and signs the ampoule CLI, prints its path
 swift test                      # unit tests
 xcodebuild -project Ampoule.xcodeproj -scheme Ampoule build
 cd engine && cargo test         # ampoule-engine
 ```
+
+The CLI must be signed with the virtualization entitlement to start VMs; `scripts/build-cli.sh` does that.
+
+## Trying it
+
+```bash
+ampoule create Ubuntu --os linux --disk 64
+ampoule run Ubuntu --iso ~/Downloads/ubuntu-server-arm64.iso   # install from an ARM64 ISO
+ampoule run Ubuntu                                             # later boots
+ampoule list
+```
+
+VMs live in `~/Library/Application Support/Ampoule/VMs` (override with `$AMPOULE_HOME`).
 
 ## How this was built
 
