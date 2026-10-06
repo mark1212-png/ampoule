@@ -6,26 +6,27 @@ import Observation
 /// The app's view of the VM library and the VMs it is running.
 @MainActor
 @Observable
-final class LibraryModel {
-    let library = VMLibrary()
-    private(set) var entries: [VMLibrary.Entry] = []
-    private(set) var running: [String: RunningVM] = [:]
-    private(set) var installations: [Installation] = []
-    var errorMessage: String?
+public final class LibraryModel {
+    public let library: VMLibrary
+    public private(set) var entries: [VMLibrary.Entry] = []
+    public private(set) var running: [String: RunningVM] = [:]
+    public private(set) var installations: [Installation] = []
+    public var errorMessage: String?
 
     /// Called once no VM is running and no installation is in progress; used to finish quitting the app.
-    @ObservationIgnored var onAllStopped: (() -> Void)?
+    @ObservationIgnored public var onAllStopped: (() -> Void)?
 
-    enum RestoreImageSource: Hashable {
+    public enum RestoreImageSource: Hashable, Sendable {
         case latest
         case file(URL)
     }
 
-    init() {
+    public init(library: VMLibrary = VMLibrary()) {
+        self.library = library
         reload()
     }
 
-    func reload() {
+    public func reload() {
         do {
             entries = try library.entries()
         } catch {
@@ -34,7 +35,7 @@ final class LibraryModel {
         }
     }
 
-    func create(name: String, guestOS: GuestOS, cpuCount: Int, memoryMiB: Int, diskSizeGiB: Int) throws -> VMBundle {
+    public func create(name: String, guestOS: GuestOS, cpuCount: Int, memoryMiB: Int, diskSizeGiB: Int) throws -> VMBundle {
         let bundle = try library.create(name: name, guestOS: guestOS, cpuCount: cpuCount, memoryMiB: memoryMiB, diskSizeGiB: diskSizeGiB)
         reload()
         return bundle
@@ -42,7 +43,7 @@ final class LibraryModel {
 
     /// Starts the VM unless it's already running. Returns false and sets `errorMessage` on failure.
     @discardableResult
-    func start(_ bundle: VMBundle, installMedia: URL? = nil) -> Bool {
+    public func start(_ bundle: VMBundle, installMedia: URL? = nil) -> Bool {
         let name = bundle.configuration.name
         guard running[name] == nil else {
             return true
@@ -67,7 +68,7 @@ final class LibraryModel {
     }
 
     /// Saves a stopped VM's shared folders. Fails (with `errorMessage`) if the VM is running.
-    func setSharedFolders(_ folders: [SharedFolder], for bundle: VMBundle) {
+    public func setSharedFolders(_ folders: [SharedFolder], for bundle: VMBundle) {
         var configuration = bundle.configuration
         configuration.sharedFolders = folders
         do {
@@ -79,7 +80,7 @@ final class LibraryModel {
     }
 
     /// Moves a stopped VM's bundle to the Trash, where it can still be recovered.
-    func moveToTrash(_ bundle: VMBundle) {
+    public func moveToTrash(_ bundle: VMBundle) {
         guard running[bundle.configuration.name] == nil else {
             errorMessage = "Shut down \(bundle.configuration.name) before moving it to the Trash."
             return
@@ -94,7 +95,7 @@ final class LibraryModel {
 
     /// Checks the name, then downloads (if needed) and installs macOS in the background.
     /// The VM appears in the library once installation finishes.
-    func createMacOS(name: String, cpuCount: Int, memoryMiB: Int, diskSizeGiB: Int, source: RestoreImageSource) throws {
+    public func createMacOS(name: String, cpuCount: Int, memoryMiB: Int, diskSizeGiB: Int, source: RestoreImageSource) throws {
         try VMBundle.validateName(name)
         guard !library.containsBundle(named: name), !installations.contains(where: { $0.name == name }) else {
             throw BundleError.alreadyExists(name)
@@ -134,13 +135,13 @@ final class LibraryModel {
         }
     }
 
-    func cancelAllInstallations() {
+    public func cancelAllInstallations() {
         for installation in installations {
             installation.cancel()
         }
     }
 
-    var isIdle: Bool {
+    public var isIdle: Bool {
         running.isEmpty && installations.isEmpty
     }
 
@@ -150,24 +151,15 @@ final class LibraryModel {
         }
     }
 
-    func shutDownAll() {
+    public func shutDownAll() {
         for vm in running.values {
             vm.shutDown()
         }
     }
 
-    func forceOffAll() {
+    public func forceOffAll() {
         for vm in running.values {
             vm.forceOff()
-        }
-    }
-}
-
-extension VMLibrary.Entry: @retroactive Identifiable {
-    public var id: URL {
-        switch self {
-        case .valid(let bundle): bundle.url
-        case .invalid(let url, _): url
         }
     }
 }

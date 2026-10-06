@@ -1,3 +1,4 @@
+import AmpouleAppModel
 import AmpouleCore
 import SwiftUI
 

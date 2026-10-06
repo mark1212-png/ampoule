@@ -14,6 +14,8 @@ AmpouleCore Swift package, and `ampoule-engine` (Rust, Hypervisor.framework). Re
 
 - Every change goes through a branch and a pull request using `.github/pull_request_template.md`.
 - Tests are required for new behavior. Run `swift test` and, for engine changes, `cargo fmt --check && cargo clippy -- -D warnings && cargo test` in `engine/`.
+- For changes touching VM startup, also run `scripts/smoke-test.sh` (boots a real VM; skipped in CI). Unit tests can't call `VZVirtualMachineConfiguration.validate()` or start VMs: they lack the virtualization entitlement.
+- The CLI's root command must stay synchronous (`ParsableCommand`): an async `main` runs off the main dispatch queue, which breaks Virtualization.framework and `MainActor.assumeIsolated`.
 - Fail closed: invalid configuration or unexpected state is an error, never a silent default.
 - No new dependency without a decision record.
 - No GPL code linked into shipped binaries (decision 0004).
@@ -29,6 +31,8 @@ AmpouleCore Swift package, and `ampoule-engine` (Rust, Hypervisor.framework). Re
 ## Layout
 
 - `Sources/AmpouleCore` — bundle format, configuration, `VMBackend` protocol
+- `Sources/AmpouleVZ` — Virtualization.framework backend
+- `Sources/AmpouleAppModel` — the app's observable model (library, running VMs, installs), unit-tested with `swift test`
 - `Sources/AmpouleCLI` — `ampoule` command-line tool
 - `App/` + `Ampoule.xcodeproj` — the Mac app
 - `engine/` — Rust workspace for `ampoule-engine`

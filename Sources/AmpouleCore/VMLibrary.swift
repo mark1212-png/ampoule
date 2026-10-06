@@ -3,9 +3,16 @@ import Foundation
 /// The directory holding all of the user's VM bundles.
 public struct VMLibrary: Sendable {
     /// A bundle found in the library. Broken bundles are reported, never silently skipped.
-    public enum Entry: Sendable {
+    public enum Entry: Sendable, Identifiable {
         case valid(VMBundle)
         case invalid(url: URL, reason: String)
+
+        public var id: URL {
+            switch self {
+            case .valid(let bundle): bundle.url
+            case .invalid(let url, _): url
+            }
+        }
     }
 
     /// `$AMPOULE_HOME` if set, otherwise `~/Library/Application Support/Ampoule/VMs`.

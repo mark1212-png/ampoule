@@ -5,28 +5,28 @@ import Synchronization
 /// A macOS VM being downloaded and installed in the background.
 @MainActor
 @Observable
-final class Installation: Identifiable {
-    enum Phase: Equatable {
+public final class Installation: Identifiable {
+    public enum Phase: Equatable, Sendable {
         case preparing
         case downloading(Double)
         case installing(Double)
     }
 
-    let name: String
-    var phase: Phase = .preparing
+    public let name: String
+    public internal(set) var phase: Phase = .preparing
     @ObservationIgnored var task: Task<Void, Never>?
 
-    nonisolated var id: String { name }
+    public nonisolated var id: String { name }
 
     init(name: String) {
         self.name = name
     }
 
-    func cancel() {
+    public func cancel() {
         task?.cancel()
     }
 
-    var statusText: String {
+    public var statusText: String {
         switch phase {
         case .preparing: "Preparing…"
         case .downloading(let fraction): "Downloading macOS… \(Int(fraction * 100))%"
@@ -34,7 +34,7 @@ final class Installation: Identifiable {
         }
     }
 
-    var fraction: Double? {
+    public var fraction: Double? {
         switch phase {
         case .preparing: nil
         case .downloading(let fraction), .installing(let fraction): fraction
