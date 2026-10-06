@@ -45,6 +45,43 @@ public struct VMBundle: Sendable {
         memoryMiB: Int,
         diskSizeGiB: Int
     ) throws -> VMBundle {
+        let staged = try stage(in: directory, name: name, guestOS: guestOS, cpuCount: cpuCount, memoryMiB: memoryMiB, diskSizeGiB: diskSizeGiB)
+        return try commit(staged, in: directory)
+    }
+
+    /// Like `create`, but runs `prepare` on the staged bundle before moving it into place.
+    /// Used for macOS guests, whose bundle is only complete once macOS is installed.
+    /// If `prepare` throws or is cancelled, the staged bundle is deleted.
+    @MainActor
+    public static func create(
+        in directory: URL,
+        name: String,
+        guestOS: GuestOS,
+        cpuCount: Int,
+        memoryMiB: Int,
+        diskSizeGiB: Int,
+        prepare: (VMBundle) async throws -> Void
+    ) async throws -> VMBundle {
+        let staged = try stage(in: directory, name: name, guestOS: guestOS, cpuCount: cpuCount, memoryMiB: memoryMiB, diskSizeGiB: diskSizeGiB)
+        do {
+            try await prepare(staged)
+            try Task.checkCancellation()
+        } catch {
+            try? FileManager.default.removeItem(at: staged.url)
+            throw error
+        }
+        return try commit(staged, in: directory)
+    }
+
+    /// Writes a complete bundle into a hidden staging directory inside `directory`.
+    private static func stage(
+        in directory: URL,
+        name: String,
+        guestOS: GuestOS,
+        cpuCount: Int,
+        memoryMiB: Int,
+        diskSizeGiB: Int
+    ) throws -> VMBundle {
         try validateName(name)
         guard diskSizeRangeGiB.contains(diskSizeGiB) else {
             throw BundleError.diskSizeOutOfRange(diskSizeGiB)
@@ -59,8 +96,7 @@ public struct VMBundle: Sendable {
         try configuration.validate()
 
         let fileManager = FileManager.default
-        let destination = directory.appending(path: "\(name).\(pathExtension)", directoryHint: .isDirectory)
-        guard !fileManager.fileExists(atPath: destination.path) else {
+        guard !fileManager.fileExists(atPath: destination(for: name, in: directory).path) else {
             throw BundleError.alreadyExists(name)
         }
         try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -72,13 +108,27 @@ public struct VMBundle: Sendable {
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             try encoder.encode(configuration).write(to: staging.appending(path: configurationFileName))
             try createSparseFile(at: staging.appending(path: primaryDiskFileName), sizeBytes: UInt64(diskSizeGiB) << 30)
-            // Fails rather than overwrites if another bundle with this name appeared meanwhile.
-            try fileManager.moveItem(at: staging, to: destination)
         } catch {
             try? fileManager.removeItem(at: staging)
             throw error
         }
-        return VMBundle(url: destination, configuration: configuration)
+        return VMBundle(url: staging, configuration: configuration)
+    }
+
+    /// Moves a staged bundle to its final name. Fails rather than overwrites if that name appeared meanwhile.
+    private static func commit(_ staged: VMBundle, in directory: URL) throws -> VMBundle {
+        let destination = destination(for: staged.configuration.name, in: directory)
+        do {
+            try FileManager.default.moveItem(at: staged.url, to: destination)
+        } catch {
+            try? FileManager.default.removeItem(at: staged.url)
+            throw error
+        }
+        return VMBundle(url: destination, configuration: staged.configuration)
+    }
+
+    private static func destination(for name: String, in directory: URL) -> URL {
+        directory.appending(path: "\(name).\(pathExtension)", directoryHint: .isDirectory)
     }
 
     static func validateName(_ name: String) throws(BundleError) {

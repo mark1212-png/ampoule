@@ -144,3 +144,49 @@ func rejectsDiskSizeOutOfRange(size: Int) throws {
     #expect(try library.bundle(named: "Ubuntu").configuration.name == "Ubuntu")
     #expect(throws: BundleError.notFound("Debian")) { try library.bundle(named: "Debian") }
 }
+
+@MainActor
+@Test func prepareStepRunsBeforeBundleAppears() async throws {
+    let directory = try makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let bundle = try await VMBundle.create(in: directory, name: "Mac", guestOS: .macOS, cpuCount: 2, memoryMiB: 4096, diskSizeGiB: 8) { staged in
+        #expect(staged.url.lastPathComponent.hasPrefix(".Mac."))
+        #expect(!FileManager.default.fileExists(atPath: directory.appending(path: "Mac.ampoule").path))
+        try Data("installed".utf8).write(to: staged.url.appending(path: "marker"))
+    }
+
+    #expect(bundle.url.lastPathComponent == "Mac.ampoule")
+    #expect(FileManager.default.fileExists(atPath: bundle.url.appending(path: "marker").path))
+}
+
+private struct InstallFailed: Error {}
+
+@MainActor
+@Test func failedPrepareLeavesNothingBehind() async throws {
+    let directory = try makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    await #expect(throws: InstallFailed.self) {
+        try await VMBundle.create(in: directory, name: "Mac", guestOS: .macOS, cpuCount: 2, memoryMiB: 4096, diskSizeGiB: 8) { _ in
+            throw InstallFailed()
+        }
+    }
+    #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path).isEmpty)
+}
+
+@MainActor
+@Test func cancelledPrepareLeavesNothingBehind() async throws {
+    let directory = try makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let task = Task { @MainActor in
+        try await VMBundle.create(in: directory, name: "Mac", guestOS: .macOS, cpuCount: 2, memoryMiB: 4096, diskSizeGiB: 8) { _ in
+            try await Task.sleep(for: .seconds(60))
+        }
+    }
+    task.cancel()
+
+    await #expect(throws: CancellationError.self) { try await task.value }
+    #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path).isEmpty)
+}
