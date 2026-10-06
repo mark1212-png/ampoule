@@ -6,6 +6,7 @@ let package = Package(
     platforms: [.macOS(.v26)],
     products: [
         .library(name: "AmpouleCore", targets: ["AmpouleCore"]),
+        .library(name: "AmpouleVZ", targets: ["AmpouleVZ"]),
         .executable(name: "ampoule", targets: ["AmpouleCLI"]),
     ],
     dependencies: [

@@ -25,5 +25,6 @@ Short records of each project decision. Context, decision and consequences were 
 | [0019](0019-cli-argument-parser.md) | Use swift-argument-parser for the CLI (proposed) |
 | [0020](0020-vm-bundle-format.md) | VM bundle format and library location (proposed) |
 | [0021](0021-vz-linux-machine.md) | Virtualization.framework Linux machine (proposed) |
+| [0022](0022-app-vm-lifecycle.md) | App window and VM lifecycle (proposed) |
 
 New record: copy [template.md](template.md), take the next number.
