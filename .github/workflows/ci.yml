@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  swift:
+    name: Swift (core, CLI, app)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+      - run: swift build
+      - run: swift test
+      - name: Build app
+        run: xcodebuild -project Ampoule.xcodeproj -scheme Ampoule -configuration Debug CODE_SIGNING_ALLOWED=NO build
+
+  engine:
+    name: Rust (ampoule-engine)
+    runs-on: macos-26
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install stable --profile minimal --component rustfmt,clippy
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
