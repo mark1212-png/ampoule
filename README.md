@@ -6,7 +6,7 @@ An open-source virtual machine app for Apple Silicon Macs. Run macOS, Linux and 
 
 ## What it will do
 
-- **macOS and Linux guests** through Apple's Virtualization.framework (first release, v0.1).
+- **macOS and Linux guests** through Apple's Virtualization.framework (first release, v0.1). Linux boots from any ARM64 ISO; macOS installs from Apple's restore image.
 - **Windows 11 ARM64** through `ampoule-engine`, our own VM engine written in Rust on Hypervisor.framework.
 - **A native Mac app** (SwiftUI, Liquid Glass) and an **`ampoule` CLI** for scripting and CI, sharing one core.
 - Shared folders, snapshots, clipboard sharing and a guest agent.
@@ -46,6 +46,10 @@ ampoule create Ubuntu --os linux --disk 64
 ampoule run Ubuntu --iso ~/Downloads/ubuntu-server-arm64.iso   # install from an ARM64 ISO
 ampoule run Ubuntu                                             # later boots
 ampoule list
+
+ampoule ipsw                                                   # newest macOS this Mac can run
+ampoule create MyMac --os macos --ipsw latest                # download (~27 GB, cached) and install
+ampoule run MyMac
 ```
 
 VMs live in `~/Library/Application Support/Ampoule/VMs` (override with `$AMPOULE_HOME`).

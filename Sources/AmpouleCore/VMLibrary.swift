@@ -60,4 +60,24 @@ public struct VMLibrary: Sendable {
             diskSizeGiB: diskSizeGiB
         )
     }
+
+    @MainActor
+    public func create(
+        name: String,
+        guestOS: GuestOS,
+        cpuCount: Int,
+        memoryMiB: Int,
+        diskSizeGiB: Int,
+        prepare: (VMBundle) async throws -> Void
+    ) async throws -> VMBundle {
+        try await VMBundle.create(
+            in: directory,
+            name: name,
+            guestOS: guestOS,
+            cpuCount: cpuCount,
+            memoryMiB: memoryMiB,
+            diskSizeGiB: diskSizeGiB,
+            prepare: prepare
+        )
+    }
 }
